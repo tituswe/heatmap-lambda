@@ -1,0 +1,33 @@
+service: drinkaid-insights
+
+provider:
+  name: aws
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+  runtime: python3.9
+  stage: dev
+  region: ap-southeast-1
+
+functions:
+  analyze:
+    handler: handler.analyze
+    timeout: 60
+    events:
+      - http:
+          path: analyze
+          method: post
+
+package:
+  include:
+    - modules/postal_coord_map.csv
+
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 18000
+    lambdaTimeout: 60
+
