@@ -10,8 +10,16 @@ provider:
   region: ap-southeast-1
 
 functions:
+  meta:
+    handler: metaHandler.meta
+    timeout: 30
+    events:
+      - http:
+          path: meta
+          method: post
+
   analyze:
-    handler: handler.analyze
+    handler: analysisHandler.analyze
     timeout: 60
     events:
       - http:

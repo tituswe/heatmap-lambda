@@ -10,6 +10,7 @@ def purge(data: pd.DataFrame) -> pd.DataFrame:
 
     df = data.copy()
     df.columns = ["id", "date_time", "description", "sku_var", "price", "qty", "postal_code", "name", "sku_final", "cust_id"]
+    df["key"] = df["id"] + df["cust_id"]
     df = df.dropna()
 
     return df

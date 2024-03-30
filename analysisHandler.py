@@ -11,8 +11,9 @@ def analyze(event, context):
     print("Extracting data...")
     body = json.loads(event["body"])
     base64_encoded_data = body['data'] 
-    file_type = body['fileType'] 
     file_bytes = base64.b64decode(base64_encoded_data)
+    file_type = body['fileType'] 
+    filters = body['filters']
 
     if file_type == 'text/csv':
         df = pd.read_csv(BytesIO(file_bytes))
@@ -35,30 +36,22 @@ def analyze(event, context):
     print("Processing postal_code...")
     df = process_postal_code(df)
     print("Done")
-    df = df[["platform", "date", "time", "sku", "price", "qty", "name", "lat", "lng"]]
+    df = df[["key", "platform", "date", "time", "sku", "price", "qty", "name", "lat", "lng"]]
 
-    unique_platforms = df["platform"].unique()
-    unique_products = df["name"].unique()
-    unique_skus = df["sku"].unique()
-    min_price = df["price"].min()
-    max_price = df["price"].max()
-    min_qty = df["qty"].min()
-    max_qty = df["qty"].max()
+    filtered_df = df.copy()
+    filtered_df = filtered_df[filtered_df["platform"].isin(filters["selectedPlatforms"])]
+    filtered_df = filtered_df[filtered_df["name"].isin(filters["selectedProducts"])]
+    filtered_df = filtered_df[filtered_df["sku"].isin(filters["selectedSku"])]
+    filtered_df = filtered_df[filtered_df["price"] >= float(filters["lowPrice"])]
+    filtered_df = filtered_df[filtered_df["price"] <= float(filters["highPrice"])]
+    filtered_df = filtered_df[filtered_df["qty"] >= int(filters["lowQty"])]
+    filtered_df = filtered_df[filtered_df["qty"] <= int(filters["highQty"])]
+
+    # heatmap_df = filtered_df.groupby(["lat", "lng"]).size().reset_index(name="weight").head(1000)
+    heatmap_df = filtered_df[["key", "name", "lat", "lng"]].drop_duplicates(subset="key").head(2000)
 
 
-    data = {
-        "metaData": {
-            "platformOptions": unique_platforms.tolist(),
-            "productOptions": unique_products.tolist(),
-            "skuOptions": unique_skus.tolist(),
-            "minPrice": min_price,
-            "maxPrice": max_price,
-            "minQty": min_qty,
-            "maxQty": max_qty,
-        },
-        "orderData": df.to_dict(orient="records"),
-        "input": event
-    }
+    data = heatmap_df.to_dict(orient="records")
 
     response = {
         "statusCode": 200,
